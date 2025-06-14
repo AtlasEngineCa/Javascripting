@@ -57,13 +57,4 @@ public class MinestomBridge {
     public void registerCommand(Value commandDefinitionValue) {
         commandApi.register(commandDefinitionValue);
     }
-
-    // Method to be called by ScriptingManager
-    void _onScriptReload(String scriptFileName) {
-        // Implementation for handling script reloads, if necessary
-    }
-
-    void _onScriptStop(String scriptFileName) {
-        // Implementation for handling script stops, if necessary
-    }
 }

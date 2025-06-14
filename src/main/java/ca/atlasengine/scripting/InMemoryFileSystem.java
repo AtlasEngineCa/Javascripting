@@ -1,5 +1,8 @@
 package ca.atlasengine.scripting;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.channels.SeekableByteChannel;
@@ -28,6 +31,7 @@ import java.util.Set;
 
 public class InMemoryFileSystem extends FileSystem {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(InMemoryFileSystem.class);
     private final Path actualScriptsDir;
     private final Map<Path, String> virtualFileContents;
     private final FileSystem defaultFileSystem = FileSystems.getDefault();
@@ -39,16 +43,16 @@ public class InMemoryFileSystem extends FileSystem {
         moduleContentOverrides.forEach((relativePathStr, content) -> {
             Path relativePath = Paths.get(relativePathStr).normalize();
             if (relativePath.isAbsolute()) {
-                System.err.println("InMemoryFS: Module override path should be relative: " + relativePathStr);
+                LOGGER.error("InMemoryFS: Module override path should be relative: {}", relativePathStr);
                 if (relativePath.startsWith(this.actualScriptsDir)) {
                     relativePath = this.actualScriptsDir.relativize(relativePath);
                 } else {
-                    System.err.println("InMemoryFS: Cannot make " + relativePathStr + " relative. Override skipped.");
+                    LOGGER.error("InMemoryFS: Cannot make {} relative. Override skipped.", relativePathStr);
                     return;
                 }
             }
             this.virtualFileContents.put(relativePath, content);
-            System.out.println("InMemoryFS: Registered override for module: " + relativePath);
+            LOGGER.info("InMemoryFS: Registered override for module: {}", relativePath);
         });
     }
 
@@ -71,7 +75,7 @@ public class InMemoryFileSystem extends FileSystem {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         // Do not close the defaultFileSystem
     }
 
@@ -125,7 +129,7 @@ public class InMemoryFileSystem extends FileSystem {
         return defaultFileSystem.newWatchService();
     }
 
-    public void checkAccess(Path path, Set<? extends AccessMode> modes, LinkOption... linkOptions) throws IOException {
+    public void checkAccess(Path path, Set<? extends AccessMode> modes) throws IOException {
         Path overrideKey = getOverrideKey(path);
         if (overrideKey != null) {
             if (modes.contains(AccessMode.WRITE) || modes.contains(AccessMode.EXECUTE)) {
@@ -163,25 +167,27 @@ public class InMemoryFileSystem extends FileSystem {
             long size = content.getBytes(StandardCharsets.UTF_8).length;
 
             // Basic attributes. For "posix:*", "dos:*", etc., more specific handling would be needed.
-            if ("basic:isDirectory".equals(attributes) || "isDirectory".equals(attributes)) attrsMap.put("isDirectory", false);
-            else if ("basic:isRegularFile".equals(attributes) || "isRegularFile".equals(attributes)) attrsMap.put("isRegularFile", true);
-            else if ("basic:isSymbolicLink".equals(attributes) || "isSymbolicLink".equals(attributes)) attrsMap.put("isSymbolicLink", false);
-            else if ("basic:isOther".equals(attributes) || "isOther".equals(attributes)) attrsMap.put("isOther", false);
-            else if ("basic:size".equals(attributes) || "size".equals(attributes)) attrsMap.put("size", size);
-            else if ("basic:lastModifiedTime".equals(attributes) || "lastModifiedTime".equals(attributes)) attrsMap.put("lastModifiedTime", now);
-            else if ("basic:creationTime".equals(attributes) || "creationTime".equals(attributes)) attrsMap.put("creationTime", now);
-            else if ("basic:lastAccessTime".equals(attributes) || "lastAccessTime".equals(attributes)) attrsMap.put("lastAccessTime", now);
-            else if ("basic:fileKey".equals(attributes) || "fileKey".equals(attributes)) attrsMap.put("fileKey", null);
-            else { // If specific attributes string like "basic:size,isDirectory"
-                if (attributes.contains("isDirectory")) attrsMap.put("isDirectory", false);
-                if (attributes.contains("isRegularFile")) attrsMap.put("isRegularFile", true);
-                if (attributes.contains("isSymbolicLink")) attrsMap.put("isSymbolicLink", false);
-                if (attributes.contains("isOther")) attrsMap.put("isOther", false);
-                if (attributes.contains("size")) attrsMap.put("size", size);
-                if (attributes.contains("lastModifiedTime")) attrsMap.put("lastModifiedTime", now);
-                if (attributes.contains("creationTime")) attrsMap.put("creationTime", now);
-                if (attributes.contains("lastAccessTime")) attrsMap.put("lastAccessTime", now);
-                if (attributes.contains("fileKey")) attrsMap.put("fileKey", null);
+            switch (attributes) {
+                case "basic:isDirectory", "isDirectory" -> attrsMap.put("isDirectory", false);
+                case "basic:isRegularFile", "isRegularFile" -> attrsMap.put("isRegularFile", true);
+                case "basic:isSymbolicLink", "isSymbolicLink" -> attrsMap.put("isSymbolicLink", false);
+                case "basic:isOther", "isOther" -> attrsMap.put("isOther", false);
+                case "basic:size", "size" -> attrsMap.put("size", size);
+                case "basic:lastModifiedTime", "lastModifiedTime" -> attrsMap.put("lastModifiedTime", now);
+                case "basic:creationTime", "creationTime" -> attrsMap.put("creationTime", now);
+                case "basic:lastAccessTime", "lastAccessTime" -> attrsMap.put("lastAccessTime", now);
+                case "basic:fileKey", "fileKey" -> attrsMap.put("fileKey", null);
+                default -> {
+                    if (attributes.contains("isDirectory")) attrsMap.put("isDirectory", false);
+                    if (attributes.contains("isRegularFile")) attrsMap.put("isRegularFile", true);
+                    if (attributes.contains("isSymbolicLink")) attrsMap.put("isSymbolicLink", false);
+                    if (attributes.contains("isOther")) attrsMap.put("isOther", false);
+                    if (attributes.contains("size")) attrsMap.put("size", size);
+                    if (attributes.contains("lastModifiedTime")) attrsMap.put("lastModifiedTime", now);
+                    if (attributes.contains("creationTime")) attrsMap.put("creationTime", now);
+                    if (attributes.contains("lastAccessTime")) attrsMap.put("lastAccessTime", now);
+                    if (attributes.contains("fileKey")) attrsMap.put("fileKey", null);
+                }
             }
             return attrsMap;
         }
@@ -265,7 +271,7 @@ public class InMemoryFileSystem extends FileSystem {
             position += bytesToRead;
             return bytesToRead;
         }
-        @Override public int write(java.nio.ByteBuffer src) throws IOException { throw new NonWritableChannelException(); }
+        @Override public int write(java.nio.ByteBuffer src) { throw new NonWritableChannelException(); }
         @Override public long position() throws IOException { if (!open) throw new java.nio.channels.ClosedChannelException(); return position; }
         @Override public SeekableByteChannel position(long newPosition) throws IOException {
             if (!open) throw new java.nio.channels.ClosedChannelException();
@@ -273,7 +279,7 @@ public class InMemoryFileSystem extends FileSystem {
             this.position = (int) newPosition; return this;
         }
         @Override public long size() throws IOException { if (!open) throw new java.nio.channels.ClosedChannelException(); return content.length; }
-        @Override public SeekableByteChannel truncate(long size) throws IOException { throw new NonWritableChannelException(); }
+        @Override public SeekableByteChannel truncate(long size) { throw new NonWritableChannelException(); }
         @Override public boolean isOpen() { return open; }
         @Override public void close() { open = false; }
     }

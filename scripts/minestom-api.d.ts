@@ -12,6 +12,7 @@ declare const minestom: {
      *                   The callback will receive a player object as its first argument.
      */
     on: (eventName: 'playerJoin' | 'playerLeave', jsCallback: (player: Player) => void) => void;
+    on: (eventName: 'playerBlockInteract', jsCallback: (event: PlayerBlockInteractEventDetails) => void) => void;
 
     /**
      * Broadcasts a message to all players on the server.
@@ -71,6 +72,16 @@ interface Player {
      * @returns True if the gamemode was set successfully, false otherwise (e.g., invalid gamemode).
      */
     setGameMode: (gameModeName: "SURVIVAL" | "CREATIVE" | "ADVENTURE" | "SPECTATOR" | "survival" | "creative" | "adventure" | "spectator") => boolean;
+}
+
+/**
+ * Details for the playerBlockInteract event.
+ */
+interface PlayerBlockInteractEventDetails {
+    player: Player;
+    position: { x: number; y: number; z: number };
+    block: { id: string; namespaceId: string; };
+    hand: 'main_hand' | 'off_hand';
 }
 
 /**

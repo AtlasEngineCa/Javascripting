@@ -174,6 +174,25 @@ public class ScriptingManager {
         triggerJsEvent("playerLeave", player, ProxyObject.fromMap(playerData));
     }
 
+    public void firePlayerMoveEvent(Player player, Pos newPosition, boolean isOnGround) {
+        Map<String, Object> eventData = new HashMap<>();
+
+        // Add player data to the event
+        eventData.put("player", ProxyObject.fromMap(createPlayerProxyData(player, true)));
+
+        // New position
+        Map<String, Object> positionData = new HashMap<>();
+        positionData.put("x", newPosition.x());
+        positionData.put("y", newPosition.y());
+        positionData.put("z", newPosition.z());
+        eventData.put("position", ProxyObject.fromMap(positionData));
+
+        // Ground state
+        eventData.put("isOnGround", isOnGround);
+
+        triggerJsEvent("playerMove", player, ProxyObject.fromMap(eventData));
+    }
+
     public void firePlayerBlockInteractEvent(Player player, BlockVec blockPosition, Block block, PlayerHand hand) {
         Map<String, Object> eventData = new HashMap<>();
         
@@ -182,12 +201,16 @@ public class ScriptingManager {
 
         // Block information
         Map<String, Object> blockData = new HashMap<>();
-        blockData.put("x", blockPosition.x());
-        blockData.put("y", blockPosition.y());
-        blockData.put("z", blockPosition.z());
         blockData.put("id", block.name());
-        blockData.put("namespaceId", block.toString());
+        blockData.put("namespaceId", block.key().asString()); // Corrected to use namespace().toString()
         eventData.put("block", ProxyObject.fromMap(blockData));
+
+        // Block position
+        Map<String, Object> positionData = new HashMap<>();
+        positionData.put("x", blockPosition.x());
+        positionData.put("y", blockPosition.y());
+        positionData.put("z", blockPosition.z());
+        eventData.put("position", ProxyObject.fromMap(positionData));
 
         // Hand information
         eventData.put("hand", hand == PlayerHand.MAIN  ? "main_hand" : "off_hand");
@@ -239,41 +262,92 @@ public class ScriptingManager {
             return false;
         });
 
-        if (includeInstance) {
-            Map<String, Object> instanceApi = new HashMap<>();
-            instanceApi.put("sendMessage", (ProxyExecutable) (Value... args) -> {
-                if (args.length > 0 && args[0].isString()) {
-                    String message = args[0].asString();
-                    player.sendMessage(message);
-                }
-                return null;
-            });
-            instanceApi.put("setBlock", (ProxyExecutable) (Value... args) -> {
-                if (args.length == 4 && args[0].isNumber() && args[1].isNumber() && args[2].isNumber() && args[3].isString()) {
-                    int x = args[0].asInt();
-                    int y = args[1].asInt();
-                    int z = args[2].asInt();
-                    String blockId = args[3].asString();
-                    Instance playerInstance = player.getInstance();
-                    if (playerInstance != null) {
-                        Block block = Block.fromKey(blockId);
-                        if (block != null) {
-                            playerInstance.setBlock(x, y, z, block);
-                        } else {
-                            System.err.println("ScriptingManager: Invalid blockId '" + blockId + "' for setBlock.");
-                        }
-                    } else {
-                        System.err.println("ScriptingManager: Player is not in an instance for setBlock.");
-                    }
-                } else {
-                     System.err.println("ScriptingManager: Invalid arguments for instance.setBlock. Expected (x, y, z, blockId).");
-                }
-                return null;
-            });
-            playerData.put("instance", ProxyObject.fromMap(instanceApi));
+        if (includeInstance && player.getInstance() != null) {
+            playerData.put("instance", createInstanceProxyData(player.getInstance(), true));
         }
 
         return playerData;
+    }
+
+    private ProxyObject createInstanceProxyData(Instance instance, boolean allowModification) {
+        Map<String, Object> instanceApi = new HashMap<>();
+        if (instance != null) {
+            instanceApi.put("uuid", instance.getUuid());
+
+            instanceApi.put("getBlock", (ProxyExecutable) (Value... args) -> {
+                if (args.length == 3 && args[0].isNumber() && args[1].isNumber() && args[2].isNumber()) {
+                    int x = args[0].asInt();
+                    int y = args[1].asInt();
+                    int z = args[2].asInt();
+                    Block block = instance.getBlock(x, y, z);
+                    return block != null ? block.toString() : "minecraft:air"; // Return air if no block found
+                } else {
+                    System.err.println("ScriptingManager: Invalid arguments for instance.getBlock. Expected (x, y, z).");
+                    return "minecraft:air"; // Default to air if invalid arguments
+                }
+            });
+
+            instanceApi.put("setBlock", (ProxyExecutable) (Value... args) -> {
+                if (allowModification) {
+                    if (args.length == 4 &&
+                        (args[0].isNumber()) &&
+                        (args[1].isNumber()) &&
+                        (args[2].isNumber()) &&
+                        args[3].isString()) {
+
+                        // Read coordinates as doubles first, then cast to int
+                        double xDouble = args[0].asDouble();
+                        double yDouble = args[1].asDouble();
+                        double zDouble = args[2].asDouble();
+
+                        int x = (int) Math.floor(xDouble);
+                        int y = (int) Math.floor(yDouble);
+                        int z = (int) Math.floor(zDouble);
+
+                        String blockId = args[3].asString();
+                        Block block = Block.fromKey(blockId);
+                        if (block != null) {
+                            instance.setBlock(x, y, z, block);
+                        } else {
+                            System.err.println("ScriptingManager: Invalid blockId '" + blockId + "' for instance.setBlock.");
+                        }
+                    } else {
+                        System.err.println("ScriptingManager: Invalid arguments for instance.setBlock. Expected (x: number, y: number, z: number, blockId: string).");
+                    }
+                } else {
+                    System.err.println("ScriptingManager: instance.setBlock called when modification is not allowed for instance " + instance.getUuid() + " - operation ignored.");
+                }
+                return null;
+            });
+
+            instanceApi.put("getBlock", (ProxyExecutable) (Value... args) -> {
+                if (args.length == 3 && args[0].isNumber() && args[1].isNumber() && args[2].isNumber()) {
+                    int x = args[0].asInt();
+                    int y = args[1].asInt();
+                    int z = args[2].asInt();
+                    Block block = instance.getBlock(x, y, z);
+                    return block != null ? block.toString() : "minecraft:air"; // Return air if no block found
+                } else {
+                    System.err.println("ScriptingManager: Invalid arguments for instance.getBlock. Expected (x, y, z).");
+                    return "minecraft:air"; // Default to air if invalid arguments
+                }
+            });
+
+            instanceApi.put("sendMessage", (ProxyExecutable) (Value... args) -> {
+                if (allowModification) {
+                    if (args.length > 0 && args[0].isString()) {
+                        String message = args[0].asString();
+                        instance.getPlayers().forEach(p -> p.sendMessage(message)); // Broadcast to all players in the instance
+                    }
+                } else {
+                    System.out.println("ScriptingManager: instance.sendMessage called when modification is not allowed for instance " + instance.getUuid() + " (message not sent).");
+                }
+                return null;
+            });
+        } else {
+            System.err.println("ScriptingManager: createInstanceProxyData called with null instance.");
+        }
+        return ProxyObject.fromMap(instanceApi);
     }
 
     private void triggerJsEvent(String eventName, Player targetOutputPlayer, Object... args) {
@@ -316,17 +390,12 @@ public class ScriptingManager {
         }
     }
 
-    // Example broadcast method that could be called from MinestomBridge
-    // public void broadcastToServer(String message) {
-    //    MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(p -> p.sendMessage(message));
-    // }
-
     public void close() {
         if (currentScriptInstance != null) {
             currentScriptInstance.close();
             currentScriptInstance = null;
         }
-        unregisterScriptCommands(); // Unregister any remaining script commands on final close
+        unregisterScriptCommands();
         jsEventListeners.clear();
         System.out.println("ScriptingManager closed and listeners cleared.");
     }

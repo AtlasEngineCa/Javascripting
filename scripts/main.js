@@ -16,13 +16,11 @@ minestom.on('playerJoin', function(player) {
     const greeting = greetPlayer(player.name);
     player.sendMessage(greeting);
 
-    const pos = player.getPosition();
-
     player.setGameMode("creative");
-    console.log("Scheduled task for player " + player.name + " executed after 20 ticks.");
 
-    if (player.instance && pos) {
+    if (player.instance) {
         minestom.schedule(200).then(() => {
+            const pos = player.getPosition();
             player.instance.setBlock(Math.floor(pos.x), Math.floor(pos.y) + 2, Math.floor(pos.z), "minecraft:gold_block");
             player.sendMessage("The gold block above your head was placed by a scheduled task!");
             console.log("Scheduled task executed for player: " + player.name);
@@ -30,6 +28,22 @@ minestom.on('playerJoin', function(player) {
             console.error("Error in scheduled task for player " + player.name + ":", error);
         });
     }
+});
+
+minestom.on('playerMove', (event) => {
+    if (event.isOnGround) {
+        event.player.instance.setBlock(
+            event.position.x,
+            event.position.y - 1,
+            event.position.z,
+            "minecraft:diamond_block" // Changed to diamond block for variety
+        )
+    }
+})
+
+minestom.on('playerBlockInteract', (event) => { // Changed to accept a single event object
+    console.log(`Player ${event.player.name} interacted with block at ${event.position.x}, ${event.position.y}, ${event.position.z} using ${event.hand}. Block ID: ${event.block.id}, Namespace ID: ${event.block.namespaceId}`);
+    event.player.sendMessage(`You interacted with a block at ${event.position.x}, ${event.position.y}, ${event.position.z} using your ${event.hand}. Block ID: ${event.block.id}, Namespace ID: ${event.block.namespaceId}`);
 });
 
 minestom.on('playerLeave', function(player) {

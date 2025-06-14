@@ -99,6 +99,7 @@ public class CommandApi {
         switch (type) {
             case "string": return ArgumentType.String(name);
             case "word": return ArgumentType.Word(name);
+            case "greedystring": return ArgumentType.StringArray(name); // Added case for greedystring
             case "integer":
                 ArgumentInteger intArg = ArgumentType.Integer(name);
                 if (argDefValue.hasMember("min")) intArg.min(argDefValue.getMember("min").asInt());
@@ -166,7 +167,7 @@ public class CommandApi {
 class DynamicScriptCommand extends Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicScriptCommand.class);
     private final ScriptingManager scriptingManager;
-    private final MinestomBridge bridge; // To access setPlayerGamemode for player proxies
+    private final MinestomBridge bridge;
 
     public DynamicScriptCommand(String name, ScriptingManager scriptingManager, MinestomBridge bridge) {
         super(name);
@@ -232,7 +233,6 @@ class DynamicScriptCommand extends Command {
                         }
                         return false;
                     });
-                    // Add other player methods from ScriptingManager.firePlayerJoinEvent if needed
                     return ProxyObject.fromMap(playerProxyData);
                 }
                 // TODO: Proxy other complex types like Entity, ItemStack, List<Player/Entity>

@@ -2,8 +2,12 @@ package ca.atlasengine.scripting.api;
 
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BroadcastMessage {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BroadcastMessage.class);
 
     /**
      * Broadcasts a message to all online players.
@@ -13,7 +17,7 @@ public class BroadcastMessage {
      */
     public void execute(String message) {
         if (message == null) {
-            System.err.println("BroadcastMessageCommand.execute: Message is null.");
+            LOGGER.error("BroadcastMessageCommand.execute: Message is null.");
             return;
         }
         try {
@@ -21,7 +25,7 @@ public class BroadcastMessage {
                 player.sendMessage(Component.text(message));
             });
         } catch (Exception e) {
-            System.err.println("BroadcastMessageCommand.execute: An unexpected error occurred: " + e.getMessage());
+            LOGGER.error("BroadcastMessageCommand.execute: An unexpected error occurred: {}", e.getMessage());
             e.printStackTrace();
         }
     }

@@ -53,7 +53,7 @@ public class GraalVmFileSystemAdapter implements FileSystem {
 
     @Override
     public void checkAccess(Path path, Set<? extends AccessMode> modes, LinkOption... linkOptions) throws IOException {
-        delegate.checkAccess(path, modes, linkOptions);
+        delegate.checkAccess(path, modes);
     }
 
     @Override

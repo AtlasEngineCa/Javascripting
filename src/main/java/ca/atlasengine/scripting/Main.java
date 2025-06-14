@@ -40,7 +40,7 @@ public class Main {
         // Initialization
         MinecraftServer minecraftServer = MinecraftServer.init();
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
-        scriptingManager = new ScriptingManager(); // Initialize ScriptingManager
+        scriptingManager = new ScriptingManager();
 
         // Create the instance
         InstanceContainer instanceContainer = instanceManager.createInstanceContainer();
@@ -62,7 +62,6 @@ public class Main {
         eventHooks.registerEventHandlers();
 
         // Load the main script once on startup
-        // The PlayerSpawnEvent in EventHooks will handle firing playerJoin for each player
         scriptingManager.loadAndRunScript("main.js", null);
 
         // Register a command to execute JavaScript
@@ -116,14 +115,10 @@ public class Main {
             String fileName = context.get(fileNameArgument);
             Player player = (sender instanceof Player) ? (Player) sender : null;
 
-            // Pass the player if scope is PLAYER_LOCAL, otherwise null for GLOBAL or if sender is not player
-            scriptingManager.loadAndRunScript(fileName, player); // Added scope, player for command feedback
+            scriptingManager.loadAndRunScript(fileName, player);
         }, fileNameArgument);
 
         MinecraftServer.getCommandManager().register(runJsFileCommand);
-
-        // Load a default global script on startup, e.g., "main.js"
-        scriptingManager.loadAndRunScript("main.js", null);
 
         // Start the server on port 25565
         minecraftServer.start("0.0.0.0", 25565);

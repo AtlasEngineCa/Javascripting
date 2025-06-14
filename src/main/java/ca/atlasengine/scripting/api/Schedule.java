@@ -76,7 +76,7 @@ public class Schedule {
 
         if (scriptInstance == null) {
             LOGGER.warn("ScheduleCommand.schedule: Cannot schedule task, no active script instance for script: {}. Returning null.", scriptFileName);
-            return null; // Cannot create a JS promise if scriptInstance is null
+            return null;
         }
 
         String uniqueId = "task_" + UUID.randomUUID().toString().replace("-", "");
@@ -95,12 +95,11 @@ public class Schedule {
             promise = scriptInstance.eval(jsEval);
         } catch (Exception e) {
             LOGGER.error("ScheduleCommand.schedule: Error evaluating JS for promise creation in script '{}': {}", scriptFileName, e.getMessage(), e);
-            // Attempt to return a rejected promise from the script context
             try {
                 return scriptInstance.eval("(async () => { throw new Error('Failed to create promise for schedule due to JS eval error.'); })()");
             } catch (Exception evalEx) {
                 LOGGER.error("ScheduleCommand.schedule: Further error trying to eval a rejected promise: {}", evalEx.getMessage(), evalEx);
-                return null; // Fallback if even that fails
+                return null;
             }
         }
 
@@ -110,7 +109,7 @@ public class Schedule {
                 return scriptInstance.eval("(async () => { throw new Error('Failed to initialize promise object for schedule in script " + scriptFileName.replace("'", "\\'") + "'); })()");
             } catch (Exception evalEx) {
                 LOGGER.error("ScheduleCommand.schedule: Further error trying to eval a rejected promise for null promise: {}", evalEx.getMessage(), evalEx);
-                return null; // Fallback if even that fails
+                return null;
             }
         }
 

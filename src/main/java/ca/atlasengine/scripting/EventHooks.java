@@ -5,6 +5,7 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.PlayerBlockInteractEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 
 public class EventHooks {
@@ -34,7 +35,12 @@ public class EventHooks {
             scriptingManager.firePlayerBlockInteractEvent(event.getPlayer(), event.getBlockPosition(), event.getBlock(), event.getHand());
         });
 
-        System.out.println("EventHooks: Registered event handlers for PlayerDisconnectEvent and PlayerSpawnEvent.");
+        globalEventHandler.addListener(PlayerMoveEvent.class, event -> {
+            final Player player = event.getPlayer();
+            scriptingManager.firePlayerMoveEvent(player, event.getNewPosition(), event.isOnGround());
+        });
+
+        System.out.println("EventHooks: Registered Hooks");
     }
 }
 
