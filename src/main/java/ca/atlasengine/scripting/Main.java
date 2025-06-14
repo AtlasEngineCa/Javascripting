@@ -22,6 +22,20 @@ public class Main {
 
     private static ScriptingManager scriptingManager;
 
+    private static ScriptInstance createScriptInstance(Map<String, String> overrides, ScriptingManager scriptingManager) {
+        // Define the root path for script execution
+        Path scriptsRootPath = Paths.get("scripts").toAbsolutePath();
+
+        // Create the InMemoryFileSystem with overrides
+        InMemoryFileSystem inMemoryFs = new InMemoryFileSystem(scriptsRootPath, overrides);
+
+        // Create the GraalVmFileSystemAdapter using the InMemoryFileSystem and the root path
+        GraalVmFileSystemAdapter fsAdapter = new GraalVmFileSystemAdapter(inMemoryFs, scriptsRootPath);
+
+        // Create and return the script instance
+        return new ScriptInstance(new MinestomBridge(scriptingManager), fsAdapter);
+    }
+
     public static void main(String[] args) {
         // Initialization
         MinecraftServer minecraftServer = MinecraftServer.init();
@@ -67,24 +81,13 @@ public class Main {
             String scriptToExecute = String.join(" ", context.get(scriptArgument));
             player.sendMessage("Executing ad-hoc JavaScript: " + scriptToExecute);
 
-            // Ad-hoc execution should ideally use a temporary ScriptInstance or a shared one carefully.
-            // For simplicity, this example will use a new temporary instance.
-            // Note: Ad-hoc scripts won't have access to listeners registered by the main script via ScriptingManager.
+            // Ad-hoc execution using the helper method
             ScriptInstance tempScriptInstance = null;
             try {
-                // Define the root path for script execution, e.g., "scripts" directory
-                Path scriptsRootPath = Paths.get("scripts").toAbsolutePath();
-                // For ad-hoc scripts, we might not have specific overrides, so pass an empty map.
-                Map<String, String> adhocOverrides = Collections.emptyMap(); // Or new HashMap<>();
+                // For ad-hoc scripts, we use empty overrides
+                Map<String, String> adhocOverrides = Collections.emptyMap();
 
-                // First, create the InMemoryFileSystem
-                InMemoryFileSystem inMemoryFs = new InMemoryFileSystem(scriptsRootPath, adhocOverrides);
-                // Then, create the GraalVmFileSystemAdapter using the InMemoryFileSystem and the root path
-                GraalVmFileSystemAdapter fsAdapter = new GraalVmFileSystemAdapter(inMemoryFs, scriptsRootPath);
-
-                // Pass a new bridge for ad-hoc, or decide if ad-hoc scripts can register global listeners.
-                // For now, ad-hoc scripts are fully isolated and cannot use minestom.on() to register persistent listeners.
-                tempScriptInstance = new ScriptInstance(new MinestomBridge(new ScriptingManager()), fsAdapter); // Temporary, isolated bridge
+                tempScriptInstance = createScriptInstance(adhocOverrides, new ScriptingManager());
                 Value result = tempScriptInstance.eval(scriptToExecute);
                 String stdout = tempScriptInstance.getStdout();
                 String stderr = tempScriptInstance.getStderr();
@@ -135,4 +138,3 @@ public class Main {
         }));
     }
 }
-

@@ -3,6 +3,7 @@ package ca.atlasengine.scripting;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
+import net.minestom.server.event.player.PlayerBlockInteractEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 
@@ -29,6 +30,12 @@ public class EventHooks {
             }
         });
 
+        globalEventHandler.addListener(PlayerBlockInteractEvent.class, event -> {
+            scriptingManager.firePlayerBlockInteractEvent(event.getPlayer(), event.getBlockPosition(), event.getBlock(), event.getHand());
+        });
+
         System.out.println("EventHooks: Registered event handlers for PlayerDisconnectEvent and PlayerSpawnEvent.");
     }
 }
+
+

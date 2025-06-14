@@ -3,8 +3,10 @@ package ca.atlasengine.scripting;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.command.builder.Command;
+import net.minestom.server.coordinate.BlockVec;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.coordinate.Pos;
@@ -22,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+
+import static net.minestom.server.entity.MetadataDef.Player.MAIN_HAND;
 
 public class ScriptingManager {
     private ScriptInstance currentScriptInstance;
@@ -161,6 +165,37 @@ public class ScriptingManager {
     }
 
     public void firePlayerJoinEvent(Player player) {
+        Map<String, Object> playerData = createPlayerProxyData(player, true);
+        triggerJsEvent("playerJoin", player, ProxyObject.fromMap(playerData));
+    }
+
+    public void firePlayerLeaveEvent(Player player) {
+        Map<String, Object> playerData = createPlayerProxyData(player, false); // Instance modification not allowed on leave
+        triggerJsEvent("playerLeave", player, ProxyObject.fromMap(playerData));
+    }
+
+    public void firePlayerBlockInteractEvent(Player player, BlockVec blockPosition, Block block, PlayerHand hand) {
+        Map<String, Object> eventData = new HashMap<>();
+        
+        // Add player data to the event
+        eventData.put("player", ProxyObject.fromMap(createPlayerProxyData(player, true)));
+
+        // Block information
+        Map<String, Object> blockData = new HashMap<>();
+        blockData.put("x", blockPosition.x());
+        blockData.put("y", blockPosition.y());
+        blockData.put("z", blockPosition.z());
+        blockData.put("id", block.name());
+        blockData.put("namespaceId", block.toString());
+        eventData.put("block", ProxyObject.fromMap(blockData));
+
+        // Hand information
+        eventData.put("hand", hand == PlayerHand.MAIN  ? "main_hand" : "off_hand");
+
+        triggerJsEvent("playerBlockInteract", player, ProxyObject.fromMap(eventData));
+    }
+
+    private Map<String, Object> createPlayerProxyData(Player player, boolean includeInstance) {
         Map<String, Object> playerData = new HashMap<>();
         playerData.put("name", player.getUsername());
         playerData.put("uuid", player.getUuid().toString());
@@ -204,89 +239,41 @@ public class ScriptingManager {
             return false;
         });
 
-        Map<String, Object> instanceApi = new HashMap<>();
-        instanceApi.put("sendMessage", (ProxyExecutable) (Value... args) -> {
-            if (args.length > 0 && args[0].isString()) {
-                String message = args[0].asString();
-                player.sendMessage(message);
-            }
-            return null;
-        });
-        instanceApi.put("setBlock", (ProxyExecutable) (Value... args) -> {
-            if (args.length == 4 && args[0].isNumber() && args[1].isNumber() && args[2].isNumber() && args[3].isString()) {
-                int x = args[0].asInt();
-                int y = args[1].asInt();
-                int z = args[2].asInt();
-                String blockId = args[3].asString();
-                Instance playerInstance = player.getInstance();
-                if (playerInstance != null) {
-                    Block block = Block.fromKey(blockId);
-                    if (block != null) {
-                        playerInstance.setBlock(x, y, z, block);
+        if (includeInstance) {
+            Map<String, Object> instanceApi = new HashMap<>();
+            instanceApi.put("sendMessage", (ProxyExecutable) (Value... args) -> {
+                if (args.length > 0 && args[0].isString()) {
+                    String message = args[0].asString();
+                    player.sendMessage(message);
+                }
+                return null;
+            });
+            instanceApi.put("setBlock", (ProxyExecutable) (Value... args) -> {
+                if (args.length == 4 && args[0].isNumber() && args[1].isNumber() && args[2].isNumber() && args[3].isString()) {
+                    int x = args[0].asInt();
+                    int y = args[1].asInt();
+                    int z = args[2].asInt();
+                    String blockId = args[3].asString();
+                    Instance playerInstance = player.getInstance();
+                    if (playerInstance != null) {
+                        Block block = Block.fromKey(blockId);
+                        if (block != null) {
+                            playerInstance.setBlock(x, y, z, block);
+                        } else {
+                            System.err.println("ScriptingManager: Invalid blockId '" + blockId + "' for setBlock.");
+                        }
                     } else {
-                        System.err.println("ScriptingManager: Invalid blockId '" + blockId + "' for setBlock.");
+                        System.err.println("ScriptingManager: Player is not in an instance for setBlock.");
                     }
                 } else {
-                    System.err.println("ScriptingManager: Player is not in an instance for setBlock.");
+                     System.err.println("ScriptingManager: Invalid arguments for instance.setBlock. Expected (x, y, z, blockId).");
                 }
-            } else {
-                 System.err.println("ScriptingManager: Invalid arguments for instance.setBlock. Expected (x, y, z, blockId).");
-            }
-            return null;
-        });
-        playerData.put("instance", ProxyObject.fromMap(instanceApi));
+                return null;
+            });
+            playerData.put("instance", ProxyObject.fromMap(instanceApi));
+        }
 
-        triggerJsEvent("playerJoin", player, ProxyObject.fromMap(playerData));
-    }
-
-    public void firePlayerLeaveEvent(Player player) {
-        Map<String, Object> playerData = new HashMap<>();
-        playerData.put("name", player.getUsername());
-        playerData.put("uuid", player.getUuid().toString());
-        playerData.put("sendMessage", (ProxyExecutable) (Value... args) -> {
-            if (args.length > 0 && args[0].isString()) {
-                String message = args[0].asString();
-                player.sendMessage(message);
-            }
-            return null;
-        });
-        playerData.put("getPosition", (ProxyExecutable) (Value... args) -> {
-            Pos position = player.getPosition();
-            Map<String, Object> posMap = new HashMap<>();
-            posMap.put("x", position.x());
-            posMap.put("y", position.y());
-            posMap.put("z", position.z());
-            return ProxyObject.fromMap(posMap);
-        });
-
-        // Add setGameMode to the Player object proxy for playerLeaveEvent as well, if needed
-        // Or ensure player objects are consistently constructed if they can be long-lived
-        playerData.put("setGameMode", (ProxyExecutable) (Value... args) -> {
-            System.out.println("ScriptingManager: player.setGameMode called on playerLeave event for " + player.getUsername());
-
-            if (args.length > 0 && args[0].isString()) {
-                String gameModeName = args[0].asString();
-                return bridge.setPlayerGamemode(player.getUuid().toString(), gameModeName);
-            }
-            System.err.println("ScriptingManager: Invalid arguments for player.setGameMode. Expected (gameModeName: string).");
-            return false;
-        });
-
-        Map<String, Object> instanceApi = new HashMap<>();
-        instanceApi.put("sendMessage", (ProxyExecutable) (Value... args) -> {
-            if (args.length > 0 && args[0].isString()) {
-                String message = args[0].asString();
-                System.out.println("ScriptingManager: instance.sendMessage called on playerLeave for " + player.getUsername() + ": " + message + " (message not sent to player)");
-            }
-            return null;
-        });
-        instanceApi.put("setBlock", (ProxyExecutable) (Value... args) -> {
-            System.err.println("ScriptingManager: instance.setBlock called on playerLeave event for " + player.getUsername() + " - operation ignored.");
-            return null;
-        });
-        playerData.put("instance", ProxyObject.fromMap(instanceApi));
-
-        triggerJsEvent("playerLeave", player, ProxyObject.fromMap(playerData));
+        return playerData;
     }
 
     private void triggerJsEvent(String eventName, Player targetOutputPlayer, Object... args) {
