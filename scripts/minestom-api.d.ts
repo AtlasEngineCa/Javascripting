@@ -57,6 +57,14 @@ interface Player {
      * Provides access to the player's current instance (world/dimension).
      */
     instance: PlayerInstance;
+
+    /**
+     * Sets the gamemode for this player.
+     * @param gameModeName The name of the gamemode (e.g., "SURVIVAL", "CREATIVE", "ADVENTURE", "SPECTATOR").
+     *                     Case-insensitive, but it's good practice to use uppercase or lowercase consistently.
+     * @returns True if the gamemode was set successfully, false otherwise (e.g., invalid gamemode).
+     */
+    setGameMode: (gameModeName: "SURVIVAL" | "CREATIVE" | "ADVENTURE" | "SPECTATOR" | "survival" | "creative" | "adventure" | "spectator") => boolean;
 }
 
 /**

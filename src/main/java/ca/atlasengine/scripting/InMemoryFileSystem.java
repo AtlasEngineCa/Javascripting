@@ -9,7 +9,7 @@ import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
-import java.nio.file.FileSystem; // Explicitly import FileSystem
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
@@ -65,11 +65,9 @@ public class InMemoryFileSystem extends FileSystem {
         return null;
     }
 
-    // Methods from java.nio.file.FileSystem interface (SHOULD have @Override)
-
     @Override
     public FileSystemProvider provider() {
-        return defaultProvider; // Or a custom provider if this FS was more complex
+        return defaultProvider;
     }
 
     @Override
@@ -84,7 +82,7 @@ public class InMemoryFileSystem extends FileSystem {
 
     @Override
     public boolean isReadOnly() {
-        return true; // Overridden content is read-only, underlying might not be but we present a read-only view for overrides.
+        return true;
     }
 
     @Override
@@ -109,8 +107,6 @@ public class InMemoryFileSystem extends FileSystem {
 
     @Override
     public Path getPath(String first, String... more) {
-        // This path is created by the default FS, so operations on it will use the default provider
-        // unless Graal intercepts calls via its own FileSystem adapter.
         return defaultFileSystem.getPath(first, more);
     }
 
@@ -129,20 +125,14 @@ public class InMemoryFileSystem extends FileSystem {
         return defaultFileSystem.newWatchService();
     }
 
-    // Public methods used by GraalVmFileSystemAdapter (NOT @Override from java.nio.file.FileSystem)
-    // These methods handle the override logic or delegate to the default provider.
-
     public void checkAccess(Path path, Set<? extends AccessMode> modes, LinkOption... linkOptions) throws IOException {
         Path overrideKey = getOverrideKey(path);
         if (overrideKey != null) {
             if (modes.contains(AccessMode.WRITE) || modes.contains(AccessMode.EXECUTE)) {
                 throw new AccessDeniedException("Overridden module " + path + " is read-only.");
             }
-            // Read access is implicitly allowed if found
             return;
         }
-        // Delegate to default provider; linkOptions are not directly used by provider.checkAccess
-        // For a more robust check involving linkOptions, one might need to resolve the path first.
         AccessMode[] modeArray = modes.toArray(new AccessMode[0]);
         defaultProvider.checkAccess(path, modeArray);
     }

@@ -1,5 +1,6 @@
 package ca.atlasengine.scripting;
 
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
@@ -152,6 +153,30 @@ public class ScriptingManager {
             return ProxyObject.fromMap(posMap);
         });
 
+        // Add setGameMode to the Player object proxy
+        playerData.put("setGameMode", (ProxyExecutable) (Value... args) -> {
+            if (args.length > 0 && args[0].isString()) {
+                String gameModeName = args[0].asString();
+
+                GameMode gameMode = switch (gameModeName.toLowerCase()) {
+                    case "survival" -> GameMode.SURVIVAL;
+                    case "creative" -> GameMode.CREATIVE;
+                    case "adventure" -> GameMode.ADVENTURE;
+                    case "spectator" -> GameMode.SPECTATOR;
+                    default -> null;
+                };
+
+                if (gameMode == null) {
+                    System.err.println("ScriptingManager: Invalid game mode '" + gameModeName + "'. Valid modes are: survival, creative, adventure, spectator.");
+                    return false;
+                }
+                player.setGameMode(gameMode);
+                return true;
+            }
+            System.err.println("ScriptingManager: Invalid arguments for player.setGameMode. Expected (gameModeName: string).");
+            return false;
+        });
+
         Map<String, Object> instanceApi = new HashMap<>();
         instanceApi.put("sendMessage", (ProxyExecutable) (Value... args) -> {
             if (args.length > 0 && args[0].isString()) {
@@ -205,6 +230,19 @@ public class ScriptingManager {
             posMap.put("y", position.y());
             posMap.put("z", position.z());
             return ProxyObject.fromMap(posMap);
+        });
+
+        // Add setGameMode to the Player object proxy for playerLeaveEvent as well, if needed
+        // Or ensure player objects are consistently constructed if they can be long-lived
+        playerData.put("setGameMode", (ProxyExecutable) (Value... args) -> {
+            System.out.println("ScriptingManager: player.setGameMode called on playerLeave event for " + player.getUsername());
+
+            if (args.length > 0 && args[0].isString()) {
+                String gameModeName = args[0].asString();
+                return bridge.setPlayerGamemode(player.getUuid().toString(), gameModeName);
+            }
+            System.err.println("ScriptingManager: Invalid arguments for player.setGameMode. Expected (gameModeName: string).");
+            return false;
         });
 
         Map<String, Object> instanceApi = new HashMap<>();

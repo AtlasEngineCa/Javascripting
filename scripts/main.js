@@ -1,6 +1,5 @@
 /// <reference path="./minestom-api.d.ts" />
 
-// Import functions/variables from other modules
 import { greetPlayer, utilityVersion } from './utils.js';
 
 console.log("Main JavaScript file loaded!");
@@ -13,11 +12,17 @@ minestom.on('playerJoin', function(player) {
     minestom.broadcastMessage(joinMessage);
     player.sendMessage("Welcome to the server, " + player.name + "!");
 
-    // Use the imported function
     const greeting = greetPlayer(player.name);
     player.sendMessage(greeting);
 
     const pos = player.getPosition();
+
+    minestom.schedule(20).then(() => {
+        player.setGameMode("creative");
+        console.log("Scheduled task for player " + player.name + " executed after 20 ticks.");
+    }).catch(error => {
+        console.error("Error in scheduled task for player " + player.name + ":", error);
+    });
 
     if (player.instance && pos) {
         minestom.schedule(200).then(() => {
@@ -37,9 +42,5 @@ minestom.on('playerLeave', function(player) {
     minestom.broadcastMessage(leaveMessage);
 });
 
-// To make testFunction callable from an ad-hoc /js command, you'd need to expose it globally in a way
-// that a new ScriptInstance could pick up, or use a more sophisticated script management system.
-// For now, functions defined here are primarily for use by event handlers within this script context.
-
 console.log("main.js: Registered playerJoin listener.");
-console.log("main.js: Registered playerLeave listener."); // Added log for new listener
+console.log("main.js: Registered playerLeave listener.");
