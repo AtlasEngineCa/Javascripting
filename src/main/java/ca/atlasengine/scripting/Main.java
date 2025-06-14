@@ -16,7 +16,6 @@ import org.graalvm.polyglot.Value;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class Main {

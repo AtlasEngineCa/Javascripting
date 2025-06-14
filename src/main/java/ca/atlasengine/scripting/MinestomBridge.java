@@ -1,5 +1,6 @@
 package ca.atlasengine.scripting;
 
+import ca.atlasengine.scripting.api.CommandApi;
 import ca.atlasengine.scripting.api.BroadcastMessage;
 import ca.atlasengine.scripting.api.Schedule;
 import ca.atlasengine.scripting.api.SendMessage;
@@ -13,6 +14,7 @@ public class MinestomBridge {
     private final BroadcastMessage broadcastMessage;
     private final SetPlayerGamemode setPlayerGamemode;
     private final Schedule schedule;
+    private final CommandApi commandApi;
 
     public MinestomBridge(ScriptingManager scriptingManager) {
         this.scriptingManager = scriptingManager;
@@ -20,6 +22,7 @@ public class MinestomBridge {
         this.broadcastMessage = new BroadcastMessage();
         this.setPlayerGamemode = new SetPlayerGamemode();
         this.schedule = new Schedule(scriptingManager);
+        this.commandApi = new CommandApi(scriptingManager);
     }
 
     @HostAccess.Export
@@ -41,13 +44,18 @@ public class MinestomBridge {
         this.broadcastMessage.execute(message);
     }
 
-    boolean setPlayerGamemode(String playerIdentifier, String gameModeName) {
+    public boolean setPlayerGamemode(String playerIdentifier, String gameModeName) {
         return this.setPlayerGamemode.execute(playerIdentifier, gameModeName);
     }
 
     @HostAccess.Export
     public Value schedule(long delayInTicks) {
         return this.schedule.schedule(delayInTicks);
+    }
+
+    @HostAccess.Export
+    public void registerCommand(Value commandDefinitionValue) {
+        commandApi.register(commandDefinitionValue);
     }
 
     // Method to be called by ScriptingManager

@@ -1,6 +1,7 @@
 /// <reference path="./minestom-api.d.ts" />
 
 import { greetPlayer, utilityVersion } from './utils.js';
+import './customCommands.js'; // Import custom commands
 
 console.log("Main JavaScript file loaded!");
 console.log(`Utility version: ${utilityVersion}`);

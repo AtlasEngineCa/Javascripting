@@ -1,5 +1,8 @@
 package ca.atlasengine.scripting;
 
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.CommandManager;
+import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.instance.Instance;
@@ -17,6 +20,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 public class ScriptingManager {
     private ScriptInstance currentScriptInstance;
@@ -24,6 +29,7 @@ public class ScriptingManager {
     private final MinestomBridge bridge;
     private final Map<String, List<Value>> jsEventListeners = new HashMap<>();
     private final Path scriptsDir = Paths.get("scripts"); // Define scripts directory path
+    private final Set<String> registeredScriptCommands = new HashSet<>(); // To track commands registered by the current script
 
     public ScriptingManager() {
         this.bridge = new MinestomBridge(this);
@@ -69,8 +75,10 @@ public class ScriptingManager {
         try {
             if (currentScriptInstance != null) {
                 currentScriptInstance.close();
+                unregisterScriptCommands(); // Unregister commands from the old script
             }
             jsEventListeners.clear();
+            // registeredScriptCommands.clear(); // Clear before loading new script - done in unregisterScriptCommands
 
             Map<String, String> moduleOverrides = new HashMap<>();
             try {
@@ -127,6 +135,25 @@ public class ScriptingManager {
             else System.err.println(message);
             e.printStackTrace();
         }
+    }
+
+    public void trackRegisteredCommand(String commandName) {
+        registeredScriptCommands.add(commandName);
+    }
+
+    private void unregisterScriptCommands() {
+        CommandManager commandManager = MinecraftServer.getCommandManager();
+        for (String commandName : registeredScriptCommands) {
+            Command existingCommand = commandManager.getCommand(commandName);
+            if (existingCommand != null) {
+                // Check if it's an instance of our ScriptableCommand if we want to be super safe
+                // For now, just unregister by name, assuming scripts don't maliciously overwrite core commands
+                // or that our registration logic in CommandApi handles overwriting appropriately.
+                commandManager.unregister(existingCommand); // Minestom unregisters by Command object
+                System.out.println("ScriptingManager: Unregistered command '" + commandName + "' from script.");
+            }
+        }
+        registeredScriptCommands.clear();
     }
 
     public void registerJsEventListener(String eventName, Value jsCallback) {
@@ -312,6 +339,7 @@ public class ScriptingManager {
             currentScriptInstance.close();
             currentScriptInstance = null;
         }
+        unregisterScriptCommands(); // Unregister any remaining script commands on final close
         jsEventListeners.clear();
         System.out.println("ScriptingManager closed and listeners cleared.");
     }
