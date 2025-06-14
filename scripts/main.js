@@ -1,7 +1,7 @@
 /// <reference path="./minestom-api.d.ts" />
 
 import { greetPlayer, utilityVersion } from './utils.js';
-import './customCommands.js'; // Import custom commands
+import './customCommands.js';
 
 console.log("Main JavaScript file loaded!");
 console.log(`Utility version: ${utilityVersion}`);
@@ -36,12 +36,12 @@ minestom.on('playerMove', (event) => {
             event.position.x,
             event.position.y - 1,
             event.position.z,
-            "minecraft:diamond_block" // Changed to diamond block for variety
+            "minecraft:diamond_block"
         )
     }
 })
 
-minestom.on('playerBlockInteract', (event) => { // Changed to accept a single event object
+minestom.on('playerBlockInteract', (event) => {
     console.log(`Player ${event.player.name} interacted with block at ${event.position.x}, ${event.position.y}, ${event.position.z} using ${event.hand}. Block ID: ${event.block.id}, Namespace ID: ${event.block.namespaceId}`);
     event.player.sendMessage(`You interacted with a block at ${event.position.x}, ${event.position.y}, ${event.position.z} using your ${event.hand}. Block ID: ${event.block.id}, Namespace ID: ${event.block.namespaceId}`);
 });
