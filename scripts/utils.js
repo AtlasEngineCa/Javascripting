@@ -10,5 +10,5 @@ export function greetPlayer(playerName) {
     return `Hello, ${playerName}! Welcome from the utils module!`;
 }
 
-export const utilityVersion = "1.0";
+export const utilityVersion = "1.1";
 

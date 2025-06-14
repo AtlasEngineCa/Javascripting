@@ -1,9 +1,9 @@
-package ca.atlasengine.scripting.commands;
+package ca.atlasengine.scripting.api;
 
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
 
-public class BroadcastMessageCommand {
+public class BroadcastMessage {
 
     /**
      * Broadcasts a message to all online players.

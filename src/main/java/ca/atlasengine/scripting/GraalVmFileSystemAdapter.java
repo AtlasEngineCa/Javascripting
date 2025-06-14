@@ -1,8 +1,6 @@
 package ca.atlasengine.scripting;
 
 import org.graalvm.polyglot.io.FileSystem;
-import org.graalvm.polyglot.io.MessageTransport;
-import org.graalvm.polyglot.io.ProcessHandler;
 
 import java.io.IOException;
 import java.net.URI;
@@ -105,8 +103,6 @@ public class GraalVmFileSystemAdapter implements FileSystem {
 
     @Override
     public Path getTempDirectory() {
-        // Delegate to the default system's temp directory concept if needed, or throw.
-        // For module loading, this is usually not critical.
         String tempDirPath = System.getProperty("java.io.tmpdir");
         if (tempDirPath == null) {
             try {

@@ -17,12 +17,8 @@ minestom.on('playerJoin', function(player) {
 
     const pos = player.getPosition();
 
-    minestom.schedule(20).then(() => {
-        player.setGameMode("creative");
-        console.log("Scheduled task for player " + player.name + " executed after 20 ticks.");
-    }).catch(error => {
-        console.error("Error in scheduled task for player " + player.name + ":", error);
-    });
+    player.setGameMode("creative");
+    console.log("Scheduled task for player " + player.name + " executed after 20 ticks.");
 
     if (player.instance && pos) {
         minestom.schedule(200).then(() => {

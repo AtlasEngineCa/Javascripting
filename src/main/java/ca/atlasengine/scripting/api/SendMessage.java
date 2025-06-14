@@ -1,4 +1,4 @@
-package ca.atlasengine.scripting.commands;
+package ca.atlasengine.scripting.api;
 
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
@@ -6,7 +6,7 @@ import net.minestom.server.entity.Player;
 
 import java.util.UUID;
 
-public class SendMessageCommand {
+public class SendMessage {
 
     /**
      * Sends a message to a specific player.

@@ -1,4 +1,4 @@
-package ca.atlasengine.scripting.commands;
+package ca.atlasengine.scripting.api;
 
 import ca.atlasengine.scripting.ScriptInstance;
 import ca.atlasengine.scripting.ScriptingManager;
@@ -10,12 +10,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
-public class ScheduleCommand {
+public class Schedule {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScheduleCommand.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Schedule.class);
     private final ScriptingManager scriptingManager;
 
-    public ScheduleCommand(ScriptingManager scriptingManager) {
+    public Schedule(ScriptingManager scriptingManager) {
         this.scriptingManager = scriptingManager;
     }
 
