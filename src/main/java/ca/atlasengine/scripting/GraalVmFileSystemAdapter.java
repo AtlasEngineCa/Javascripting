@@ -41,13 +41,11 @@ public class GraalVmFileSystemAdapter implements FileSystem {
 
     @Override
     public Path parsePath(URI uri) {
-        return toNioPath(uri); // Delegate uses NIO Path
+        return toNioPath(uri);
     }
 
     @Override
     public Path parsePath(String pathString) {
-        // This method is less commonly used by GraalJS for module loading than the URI one.
-        // We'll resolve it against the CWD.
         return currentWorkingDirectory.resolve(pathString).normalize();
     }
 
@@ -154,7 +152,6 @@ public class GraalVmFileSystemAdapter implements FileSystem {
 
     @Override
     public String getMimeType(Path path) {
-        // Basic implementation, can be expanded
         if (path.toString().endsWith(".js") || path.toString().endsWith(".mjs")) {
             return "application/javascript+module";
         }
@@ -162,7 +159,7 @@ public class GraalVmFileSystemAdapter implements FileSystem {
     }
 
     @Override
-    public java.nio.charset.Charset getEncoding(Path path) { // Changed return type to Charset
-        return StandardCharsets.UTF_8; // Return Charset object directly
+    public java.nio.charset.Charset getEncoding(Path path) {
+        return StandardCharsets.UTF_8;
     }
 }

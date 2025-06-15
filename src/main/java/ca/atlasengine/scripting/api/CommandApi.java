@@ -29,14 +29,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CommandApi {
+public record CommandApi(ScriptingManager scriptingManager) {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandApi.class);
-    private final ScriptingManager scriptingManager;
-
-    public CommandApi(ScriptingManager scriptingManager) {
-        this.scriptingManager = scriptingManager;
-    }
 
     public void register(Value commandDefinitionValue) {
         if (!commandDefinitionValue.hasMembers()) {
@@ -97,9 +92,12 @@ public class CommandApi {
         String type = argDefValue.getMember("type").asString().toLowerCase();
 
         switch (type) {
-            case "string": return ArgumentType.String(name);
-            case "word": return ArgumentType.Word(name);
-            case "greedystring": return ArgumentType.StringArray(name); // Added case for greedystring
+            case "string":
+                return ArgumentType.String(name);
+            case "word":
+                return ArgumentType.Word(name);
+            case "greedystring":
+                return ArgumentType.StringArray(name);
             case "integer":
                 ArgumentInteger intArg = ArgumentType.Integer(name);
                 if (argDefValue.hasMember("min")) intArg.min(argDefValue.getMember("min").asInt());
@@ -120,7 +118,8 @@ public class CommandApi {
                 if (argDefValue.hasMember("min")) longArg.min(argDefValue.getMember("min").asLong());
                 if (argDefValue.hasMember("max")) longArg.max(argDefValue.getMember("max").asLong());
                 return longArg;
-            case "boolean": return ArgumentType.Boolean(name);
+            case "boolean":
+                return ArgumentType.Boolean(name);
             case "player":
                 ArgumentEntity playerArg = ArgumentType.Entity(name).singleEntity(true).onlyPlayers(true);
                 if (argDefValue.hasMember("singleOnly") && !argDefValue.getMember("singleOnly").asBoolean()) {
@@ -135,16 +134,26 @@ public class CommandApi {
                     entityArg.onlyPlayers(true);
                 }
                 return entityArg;
-            case "uuid": return ArgumentType.UUID(name);
-            case "command": return ArgumentType.Command(name);
-            case "component": return ArgumentType.Component(name);
-            case "itemstack": return ArgumentType.ItemStack(name);
-            case "blockposition": return ArgumentType.RelativeBlockPosition(name);
-            case "vec2": return ArgumentType.RelativeVec2(name);
-            case "vec3": return ArgumentType.RelativeVec3(name);
-            case "color": return ArgumentType.Color(name);
-            case "time": return ArgumentType.Time(name);
-            case "resourcelocation": return ArgumentType.ResourceLocation(name);
+            case "uuid":
+                return ArgumentType.UUID(name);
+            case "command":
+                return ArgumentType.Command(name);
+            case "component":
+                return ArgumentType.Component(name);
+            case "itemstack":
+                return ArgumentType.ItemStack(name);
+            case "blockposition":
+                return ArgumentType.RelativeBlockPosition(name);
+            case "vec2":
+                return ArgumentType.RelativeVec2(name);
+            case "vec3":
+                return ArgumentType.RelativeVec3(name);
+            case "color":
+                return ArgumentType.Color(name);
+            case "time":
+                return ArgumentType.Time(name);
+            case "resourcelocation":
+                return ArgumentType.ResourceLocation(name);
             case "enum":
                 if (argDefValue.hasMember("enumValues") && argDefValue.getMember("enumValues").hasArrayElements()) {
                     Value enumValuesJs = argDefValue.getMember("enumValues");
@@ -152,7 +161,6 @@ public class CommandApi {
                     for (int i = 0; i < enumValuesJs.getArraySize(); i++) {
                         enumValues[i] = enumValuesJs.getArrayElement(i).asString();
                     }
-                    // Corrected to use ArgumentWord with .from() for dynamic string choices
                     return ArgumentType.Word(name).from(enumValues);
                 }
                 LOGGER.warn("Scripting: Enum argument '{}' requires 'enumValues' array.", name);

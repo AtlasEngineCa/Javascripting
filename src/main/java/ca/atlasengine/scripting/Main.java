@@ -57,7 +57,6 @@ public class Main {
             player.setRespawnPoint(new Pos(0, 42, 0));
         });
 
-        // Instantiate and register EventHooks
         EventHooks eventHooks = new EventHooks(scriptingManager);
         eventHooks.registerEventHandlers();
 
@@ -80,10 +79,8 @@ public class Main {
             String scriptToExecute = String.join(" ", context.get(scriptArgument));
             player.sendMessage("Executing ad-hoc JavaScript: " + scriptToExecute);
 
-            // Ad-hoc execution using the helper method
             ScriptInstance tempScriptInstance = null;
             try {
-                // For ad-hoc scripts, we use empty overrides
                 Map<String, String> adhocOverrides = Collections.emptyMap();
 
                 tempScriptInstance = createScriptInstance(adhocOverrides, new ScriptingManager());
@@ -120,7 +117,6 @@ public class Main {
 
         MinecraftServer.getCommandManager().register(runJsFileCommand);
 
-        // Start the server on port 25565
         minecraftServer.start("0.0.0.0", 25565);
         System.out.println("Server started. Use /runjsfile <filename> to load/reload scripts.");
 

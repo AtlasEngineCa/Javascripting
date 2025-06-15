@@ -25,15 +25,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 
-import static net.minestom.server.entity.MetadataDef.Player.MAIN_HAND;
-
 public class ScriptingManager {
     private ScriptInstance currentScriptInstance;
-    private String currentScriptFileName; // Added field to store current script's file name
+    private String currentScriptFileName;
     private final MinestomBridge bridge;
     private final Map<String, List<Value>> jsEventListeners = new HashMap<>();
-    private final Path scriptsDir = Paths.get("scripts"); // Define scripts directory path
-    private final Set<String> registeredScriptCommands = new HashSet<>(); // To track commands registered by the current script
+    private final Path scriptsDir = Paths.get("scripts");
+    private final Set<String> registeredScriptCommands = new HashSet<>();
 
     public ScriptingManager() {
         this.bridge = new MinestomBridge(this);
@@ -52,7 +50,6 @@ public class ScriptingManager {
     }
 
     public synchronized void loadAndRunScript(String fileName, Player commandSender) {
-        // Path scriptDir = Paths.get("scripts"); // Moved to class field
         if (!Files.exists(scriptsDir)) {
             try {
                 Files.createDirectories(scriptsDir);
@@ -66,8 +63,8 @@ public class ScriptingManager {
         }
 
         Path scriptPath = scriptsDir.resolve(fileName.endsWith(".js") ? fileName : fileName + ".js");
-        this.currentScriptFileName = scriptPath.getFileName().toString(); // Store the script file name
-        String effectiveFileName = this.currentScriptFileName; // Use the stored name
+        this.currentScriptFileName = scriptPath.getFileName().toString();
+        String effectiveFileName = this.currentScriptFileName;
 
         if (!Files.exists(scriptPath)) {
             String message = "Error: Script file not found: " + scriptPath;
@@ -79,10 +76,9 @@ public class ScriptingManager {
         try {
             if (currentScriptInstance != null) {
                 currentScriptInstance.close();
-                unregisterScriptCommands(); // Unregister commands from the old script
+                unregisterScriptCommands();
             }
             jsEventListeners.clear();
-            // registeredScriptCommands.clear(); // Clear before loading new script - done in unregisterScriptCommands
 
             Map<String, String> moduleOverrides = new HashMap<>();
             try {
@@ -96,16 +92,12 @@ public class ScriptingManager {
                 }
             } catch (IOException e) {
                 System.err.println("ScriptingManager: Error reading utils.js for override: " + e.getMessage());
-                // Optionally, send this error to commandSender or log more formally
             }
 
             // Create the InMemoryFileSystem with overrides
             InMemoryFileSystem inMemoryFs = new InMemoryFileSystem(scriptsDir, moduleOverrides);
 
             currentScriptInstance = new ScriptInstance(this.bridge, new GraalVmFileSystemAdapter(inMemoryFs,Path.of("./")));
-            // currentScriptInstance.evalModule(scriptPath); // Old way: evaluate the main script as a module
-            // With custom FileSystem, GraalVM handles module loading via the FS for the main script too.
-            // We still need to tell it which file to load as the entry point.
             currentScriptInstance.evalModule(scriptPath);
 
             String initialStdout = currentScriptInstance.getStdout();
@@ -150,9 +142,6 @@ public class ScriptingManager {
         for (String commandName : registeredScriptCommands) {
             Command existingCommand = commandManager.getCommand(commandName);
             if (existingCommand != null) {
-                // Check if it's an instance of our ScriptableCommand if we want to be super safe
-                // For now, just unregister by name, assuming scripts don't maliciously overwrite core commands
-                // or that our registration logic in CommandApi handles overwriting appropriately.
                 commandManager.unregister(existingCommand); // Minestom unregisters by Command object
                 System.out.println("ScriptingManager: Unregistered command '" + commandName + "' from script.");
             }
@@ -170,7 +159,7 @@ public class ScriptingManager {
     }
 
     public void firePlayerLeaveEvent(Player player) {
-        Map<String, Object> playerData = createPlayerProxyData(player, false); // Instance modification not allowed on leave
+        Map<String, Object> playerData = createPlayerProxyData(player, false);
         triggerJsEvent("playerLeave", player, ProxyObject.fromMap(playerData));
     }
 
@@ -202,7 +191,7 @@ public class ScriptingManager {
         // Block information
         Map<String, Object> blockData = new HashMap<>();
         blockData.put("id", block.name());
-        blockData.put("namespaceId", block.key().asString()); // Corrected to use namespace().toString()
+        blockData.put("namespaceId", block.key().asString());
         eventData.put("block", ProxyObject.fromMap(blockData));
 
         // Block position
@@ -280,10 +269,10 @@ public class ScriptingManager {
                     int y = args[1].asInt();
                     int z = args[2].asInt();
                     Block block = instance.getBlock(x, y, z);
-                    return block != null ? block.toString() : "minecraft:air"; // Return air if no block found
+                    return block != null ? block.toString() : "minecraft:air";
                 } else {
                     System.err.println("ScriptingManager: Invalid arguments for instance.getBlock. Expected (x, y, z).");
-                    return "minecraft:air"; // Default to air if invalid arguments
+                    return "minecraft:air";
                 }
             });
 
@@ -295,7 +284,6 @@ public class ScriptingManager {
                         (args[2].isNumber()) &&
                         args[3].isString()) {
 
-                        // Read coordinates as doubles first, then cast to int
                         double xDouble = args[0].asDouble();
                         double yDouble = args[1].asDouble();
                         double zDouble = args[2].asDouble();
@@ -326,10 +314,10 @@ public class ScriptingManager {
                     int y = args[1].asInt();
                     int z = args[2].asInt();
                     Block block = instance.getBlock(x, y, z);
-                    return block != null ? block.toString() : "minecraft:air"; // Return air if no block found
+                    return block != null ? block.toString() : "minecraft:air";
                 } else {
                     System.err.println("ScriptingManager: Invalid arguments for instance.getBlock. Expected (x, y, z).");
-                    return "minecraft:air"; // Default to air if invalid arguments
+                    return "minecraft:air";
                 }
             });
 
@@ -337,7 +325,7 @@ public class ScriptingManager {
                 if (allowModification) {
                     if (args.length > 0 && args[0].isString()) {
                         String message = args[0].asString();
-                        instance.getPlayers().forEach(p -> p.sendMessage(message)); // Broadcast to all players in the instance
+                        instance.getPlayers().forEach(p -> p.sendMessage(message));
                     }
                 } else {
                     System.out.println("ScriptingManager: instance.sendMessage called when modification is not allowed for instance " + instance.getUuid() + " (message not sent).");

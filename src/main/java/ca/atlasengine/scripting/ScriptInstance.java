@@ -18,7 +18,6 @@ public class ScriptInstance {
     private final ByteArrayOutputStream stderrBuffer;
     private static final long MAX_STATEMENT_COUNT = 100000;
 
-    // Modified constructor to accept GraalVmFileSystemAdapter
     public ScriptInstance(MinestomBridge bridge, GraalVmFileSystemAdapter fileSystemAdapter) {
         this.stdoutBuffer = new ByteArrayOutputStream();
         this.stderrBuffer = new ByteArrayOutputStream();
@@ -71,7 +70,7 @@ public class ScriptInstance {
         }
     }
 
-    public Value evalModule(Path scriptPath) throws IOException {
+    public void evalModule(Path scriptPath) throws IOException {
         if (this.context == null) {
             throw new IllegalStateException("Context is not initialized or has been closed.");
         }
@@ -79,7 +78,7 @@ public class ScriptInstance {
             Source source = Source.newBuilder("js", scriptPath.toUri().toURL())
                                   .mimeType("application/javascript+module")
                                   .build();
-            return this.context.eval(source);
+            this.context.eval(source);
         } catch (PolyglotException e) {
             System.err.println("Script module execution error (" + scriptPath + "): " + e.getMessage());
             if (e.isCancelled()) {
@@ -88,7 +87,6 @@ public class ScriptInstance {
             if (e.isHostException()) {
                 System.err.println("Host exception: " + e.asHostException().toString());
             }
-            return null;
         }
     }
 

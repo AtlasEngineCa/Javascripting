@@ -229,10 +229,6 @@ public class InMemoryFileSystem extends FileSystem {
         return defaultProvider.newDirectoryStream(dir, filter);
     }
 
-    public void setAttribute(Path path, String attribute, Object value, LinkOption... options) throws IOException {
-        defaultProvider.setAttribute(path, attribute, value, options);
-    }
-
     public void copy(Path source, Path target, CopyOption... options) throws IOException {
         defaultProvider.copy(source, target, options);
     }
@@ -241,20 +237,11 @@ public class InMemoryFileSystem extends FileSystem {
         defaultProvider.move(source, target, options);
     }
 
-    public FileStore getFileStore(Path path) throws IOException { // Note: Different from FileSystem.getFileStores()
-        return defaultProvider.getFileStore(path);
-    }
-
-    public boolean isHidden(Path path) throws IOException {
-        return defaultProvider.isHidden(path);
-    }
-
     public boolean isSameFile(Path path, Path path2, LinkOption... options) throws IOException {
         // LinkOptions are not used by provider's isSameFile.
         return defaultProvider.isSameFile(path, path2);
     }
 
-    // Inner class for SeekableByteChannel (no changes needed here from previous version)
     private static class SeekableInMemoryByteChannel implements SeekableByteChannel {
         private byte[] content;
         private int position = 0;
